@@ -648,6 +648,11 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
+"@types/ms@^0.7.31":
+  version "0.7.31"
+  resolved "https://registry.yarnpkg.com/@types/ms/-/ms-0.7.31.tgz#31b7ca6407128a3d2bbc27fe2d21b345397f6197"
+  integrity sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==
+
 "@types/node-cron@^3.0.2":
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/@types/node-cron/-/node-cron-3.0.2.tgz#1a95877680f828817e395789ac2bf8d72a5df6af"

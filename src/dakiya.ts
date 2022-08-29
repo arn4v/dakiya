@@ -1,10 +1,10 @@
 import Redis, { RedisOptions } from "ioredis";
 import cron from "node-cron";
 import { createTransport, Transporter, TransportOptions } from "nodemailer";
-import { Sequence } from "./sequence";
+import { Sequence, UnknownSequence } from "./sequence";
 
-type DakiyaParams = {
-  sequences: Sequence[];
+export type DakiyaParams<Sequences extends UnknownSequence[]> = {
+  sequences: Sequences;
   // Adds tracking pixels
   trackUserActions?: boolean;
 } & (
@@ -27,11 +27,11 @@ type DakiyaParams = {
       }
   );
 
-export class Dakiya {
+export class Dakiya<Sequences extends UnknownSequence[]> {
   private redis: Redis;
   private mailTransporter: Transporter;
 
-  constructor(private params: DakiyaParams) {
+  constructor(private params: DakiyaParams<Sequences>) {
     if ("transporter" in params) {
       this.mailTransporter = params.transporter;
     } else {
