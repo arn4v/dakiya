@@ -70,6 +70,7 @@ export class Dakiya<
     }
 
     this.mongo = new MongoClient(params.mongoUri, {});
+    this.db = this.mongo.db("dakiya");
     this.sequenceCollection = this.db.collection("sequences");
     this.jobsCollection = this.db.collection("jobs");
     this.sendPendingEmails = this.sendPendingEmails.bind(this);
@@ -189,6 +190,5 @@ export class Dakiya<
 
   private async connectToDb() {
     await this.mongo.connect();
-    this.db = this.mongo.db("dakiya");
   }
 }
