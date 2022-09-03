@@ -1,13 +1,8 @@
-import ms from "ms";
+import { z } from "zod";
 
-enum ActionType {
+export enum ActionType {
   WAIT_FOR = "waitFor",
   SEND_MAIL = "sendMail",
-}
-
-interface SendMailParams {
-  id: string;
-  template: string;
 }
 
 type Action =
@@ -17,40 +12,67 @@ type Action =
     }
   | {
       type: ActionType.SEND_MAIL;
-      value: SendMailParams;
+      value: string;
     };
 
-export class Sequence<Actions = []> {
-  actions: Readonly<Actions>;
+type EmailSubjectOrHtmlGenerator<VariablesSchema extends z.ZodObject<{}>> = (
+  vars: z.infer<VariablesSchema>
+) => string;
+export class Sequence<
+  Name extends string,
+  VariablesSchema extends z.ZodObject<{}>
+> {
+  public emails: Record<
+    string,
+    {
+      key: string;
+      getSubject: EmailSubjectOrHtmlGenerator<VariablesSchema>;
+      getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
+    }
+  > = {};
+  public steps: Action[] = [];
 
-  constructor(actions?: Actions) {
-    this.actions = (actions ?? []) as Actions;
-  }
+  constructor(public name: Name, public variableSchema: VariablesSchema) {}
 
   waitFor(value: string) {
     const action: Action = { type: ActionType.WAIT_FOR, value };
 
-    return this as unknown as Sequence<[...Actions, typeof action]>;
+    this.steps.push(action);
+
+    return this;
   }
 
-  mail<Id extends string, Template extends string>(params: {
-    id: Id;
-    template: Template;
+  mail({
+    key,
+    getSubject,
+    getHtml,
+  }: {
+    key: string;
+    getSubject: EmailSubjectOrHtmlGenerator<VariablesSchema>;
+    getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
   }) {
     const action: Action = {
       type: ActionType.SEND_MAIL,
-      value: params,
+      value: key,
     };
 
-    return this as unknown as Sequence<[...Actions, typeof action]>;
+    this.emails[key] = {
+      key: key,
+      getHtml,
+      getSubject,
+    };
+    this.steps.push(action);
+
+    return this;
   }
 }
 
-export const createSequence = () => new Sequence();
+export const createSequence = <
+  Variables extends z.ZodObject<{}>,
+  Name extends string
+>(
+  name: Name,
+  variables: Variables
+) => new Sequence(name, variables);
 
-const sequence = createSequence().waitFor("5m").mail({
-  id: "",
-  template: "",
-});
-
-export type UnknownSequence = Sequence<any>;
+export type UnknownSequence = Sequence<"", z.ZodObject<{}>>;
