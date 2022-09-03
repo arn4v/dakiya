@@ -5,51 +5,55 @@ Code-first email workflow & scheduling tool for Node.js.
 ## Usage
 
 ```typescript
-import { Dakiya, createSequence } from "../src";
+import { Sequence, Scheduler } from "dakiya";
 import { z } from "zod";
 
-const onboardingSequenceVarsSchema = z.object({
+const welcomeVariablesSchema = z.object({
   name: z.string(),
   verificationUrl: z.string(),
 });
 
-const welcomeSequence = createSequence(
-  "onboarding",
-  onboardingSequenceVarsSchema
+enum EmailSequence {
+  Onboarding = "onboarding",
+}
+
+export const onboarding = new Sequence(
+  EmailSequence.Onboarding,
+  welcomeVariablesSchema
 )
   .waitFor("5m")
   .mail({
-    key: "Welcome",
-    getSubject({ name }) {
-      // Return subject string
-      return `Welcome to App, ${name}`;
+    key: "welcome",
+    getSubject() {
+      return "Welcome to {Product Name}!";
     },
-    getHtml({ name, verificationUrl }) {
-      // Return Email HTML
-      return "";
+    getHtml({ name }) {
+      return `Hi ${name}, Welcome to {Product Name}`; // Email HTML
     },
   })
-  .waitFor("1d")
-  .mail(/** */);
+  .mail({
+    key: "verify_email",
+    getSubject() {
+      return "Verify Your Email";
+    },
+    getHtml({ verificationUrl }) {
+      return "";
+    },
+  });
 
-const dakiya = new Dakiya([welcomeSequence], {
-  mongoUri: process.env.MONGODB_URI!,
-  transportOpts: {},
+export const scheduler = new Scheduler([onboarding], {
+  mongoUri: "", // mongodb connections string
+  transportOpts: {}, // nodemailer transport options
 });
 
-const run = async () => {
-  await dakiya.initialize();
-
-  await dakiya.scheduleSequence(
-    "onboarding",
-    {
-      name: "Arnav,
-      verificationUrl: "https://myapp.com/verify?token=12345",
-    },
-    { to: 'arnav@arnavgosain.com', from: "support@myapp.com" }
-  );
-}
-};
-
-run();
+await scheduler.initialize();
+await scheduler.exec(
+  EmailSequence.Onboarding,
+  { name: "", verificationUrl: "" },
+  // Nodemailer SendMailOptions
+  {
+    to: "",
+    from: "",
+  }
+);
 ```
