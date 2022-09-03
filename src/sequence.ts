@@ -75,4 +75,4 @@ export const createSequence = <
   variables: Variables
 ) => new Sequence(name, variables);
 
-export type UnknownSequence = Sequence<"", z.ZodObject<{}>>;
+export type UnknownSequence = Sequence<any, any>;

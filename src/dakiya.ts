@@ -16,10 +16,7 @@ import {
 import { z } from "zod";
 import { ActionType, UnknownSequence } from "./sequence";
 
-export type DakiyaParams = {
-  // Adds tracking pixels
-  trackUserActions?: boolean;
-} & (
+export type DakiyaParams = (
   | {
       transportOpts: TransportOptions;
     }
@@ -27,8 +24,8 @@ export type DakiyaParams = {
       transporter: Transporter;
     }
 ) & {
-    mongoUri: string;
-  };
+  mongoUri: string;
+};
 
 type WorkflowParams = Pick<
   SendMailOptions,
@@ -51,23 +48,29 @@ interface ScheduledJobDocument {
   createdAt: number;
 }
 
-export class Dakiya<
-  Sequences extends Readonly<{
-    [key: string]: UnknownSequence;
-  }>
-> {
+type InternalSequencesMap<Sequences extends UnknownSequence[]> = {
+  [key in Sequences[number]["name"]]: UnknownSequence;
+};
+
+export class Dakiya<Sequences extends UnknownSequence[]> {
+  private sequences: InternalSequencesMap<Sequences>;
   private mongo: MongoClient;
   private db: Db;
   private sequenceCollection: Collection<SequenceMetadataDocument>;
   private jobsCollection: Collection<ScheduledJobDocument>;
   private mailTransporter: Transporter;
 
-  constructor(private sequences: Sequences, params: DakiyaParams) {
+  constructor(_sequences: Sequences, params: DakiyaParams) {
     if ("transporter" in params) {
       this.mailTransporter = params.transporter;
     } else {
       this.mailTransporter = createTransport(params.transportOpts);
     }
+
+    this.sequences = _sequences.reduce((map, sequence) => {
+      map[sequence.name] = sequence;
+      return map;
+    }, {} as InternalSequencesMap<Sequences>);
 
     this.mongo = new MongoClient(params.mongoUri, {});
     this.db = this.mongo.db("dakiya");
@@ -76,24 +79,24 @@ export class Dakiya<
     this.sendPendingEmails = this.sendPendingEmails.bind(this);
   }
 
-  async start() {
+  async initialize() {
     await this.connectToDb();
     this.startCron();
   }
 
-  startCron() {
+  private startCron() {
     cron.schedule("* * * * *", (now) => {
       void this.sendPendingEmails();
     });
   }
 
-  async getScheduledSequence(_id: ObjectId | string) {
+  private async getScheduledSequence(_id: ObjectId | string) {
     return await this.sequenceCollection.findOne({
       _id,
     });
   }
 
-  async getScheduledJobs() {
+  private async getScheduledJobs() {
     return await this.jobsCollection
       .find({
         scheduledFor: {
@@ -103,7 +106,7 @@ export class Dakiya<
       .toArray();
   }
 
-  async sendPendingEmails() {
+  private async sendPendingEmails() {
     const jobs = await this.getScheduledJobs();
     for (const { _id, key, workflowId } of jobs) {
       try {
@@ -140,9 +143,9 @@ export class Dakiya<
     }
   }
 
-  async scheduleSequence<Name extends keyof Sequences>(
+  async scheduleSequence<Name extends keyof typeof this.sequences>(
     name: Name,
-    variables: z.infer<Sequences[Name]["variableSchema"]>,
+    variables: z.infer<typeof this.sequences[Name]["variableSchema"]>,
     sendParams: WorkflowParams
   ) {
     const sequence = this.sequences[name];
