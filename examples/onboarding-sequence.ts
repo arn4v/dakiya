@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { Scheduler, createSequence } from "../src";
+import { Scheduler, createSequence, InternalSequencesMap } from "../src";
 import { z } from "zod";
 
 const html = String.raw;
@@ -9,7 +8,7 @@ const onboardingSequenceVarsSchema = z.object({
   verificationUrl: z.string(),
 });
 
-const welcomeSequence = createSequence(
+const onboardingSequence = createSequence(
   "onboarding",
   onboardingSequenceVarsSchema
 )
@@ -24,11 +23,11 @@ const welcomeSequence = createSequence(
       // Return Email HTML
       return "";
     },
-  })
-  .waitFor("1d")
-  .mail(/** */);
+  });
+// .waitFor("1d")
+// .mail(/** */);
 
-const dakiya = new Scheduler([welcomeSequence], {
+const scheduler = new Scheduler([onboardingSequence], {
   mongoUri: process.env.MONGODB_URI!,
   transportOpts: {},
 });
@@ -50,7 +49,7 @@ const createUser = async ({ name, email }: CreateUserDto) => {
 
   //> Create verification link
 
-  await dakiya.exec(
+  await scheduler.exec(
     "onboarding",
     {
       name,
@@ -61,7 +60,7 @@ const createUser = async ({ name, email }: CreateUserDto) => {
 };
 
 const run = async () => {
-  await dakiya.initialize();
+  await scheduler.initialize();
 
   await createUser({
     email: "email@email.com",

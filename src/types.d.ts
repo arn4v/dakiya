@@ -36,8 +36,12 @@ export interface ScheduledJobDocument {
   createdAt: number;
 }
 
-export type InternalSequencesMap<Sequences extends UnknownSequence[]> = {
-  [key in Sequences[number]["name"]]: UnknownSequence;
+export type InternalSequencesMap<
+  Sequences extends Readonly<UnknownSequence[]>
+> = {
+  [key in Sequences[number]["key"]]: Sequences extends Array<infer U>
+    ? U
+    : UnknownSequence;
 };
 
 export enum SequenceActionType {

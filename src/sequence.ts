@@ -1,9 +1,13 @@
 import { StringValue } from "ms";
 import { z } from "zod";
-import { SequenceAction, SequenceActionType, EmailSubjectOrHtmlGenerator } from "./types";
+import {
+  SequenceAction,
+  SequenceActionType,
+  EmailSubjectOrHtmlGenerator,
+} from "./types";
 
 export class Sequence<
-  Name extends string,
+  Key extends string,
   VariablesSchema extends z.ZodObject<{}>
 > {
   public emails: Record<
@@ -16,7 +20,7 @@ export class Sequence<
   > = {};
   public steps: SequenceAction[] = [];
 
-  constructor(public name: Name, public variableSchema: VariablesSchema) {}
+  constructor(public key: Key, public variableSchema: VariablesSchema) {}
 
   waitFor(value: StringValue) {
     const action: SequenceAction = { type: SequenceActionType.WAIT_FOR, value };
@@ -59,4 +63,4 @@ export const createSequence = <
   variables: Variables
 ) => new Sequence(name, variables);
 
-export type UnknownSequence = Sequence<string, z.ZodObject<any>>;
+export type UnknownSequence = Sequence<any, any>;

@@ -1552,8 +1552,6 @@ __metadata:
     "@types/node-cron": ^3.0.2
     "@types/nodemailer": ^6.4.5
     date-fns: ^2.29.2
-    esbuild: ^0.15.6
-    esbuild-node-tsc: ^2.0.2
     jest: ^29.0.1
     mongodb: ^4.9.0
     ms: canary
@@ -1802,21 +1800,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild-node-tsc@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "esbuild-node-tsc@npm:2.0.2"
-  dependencies:
-    yargs: ^17.5.1
-  peerDependencies:
-    esbuild: ">=0.13.0"
-    typescript: "*"
-  bin:
-    esbuild-node-tsc: dist/index.js
-    etsc: dist/index.js
-  checksum: 7dfdfcec6f329e38e0974bc176e5e4d9c97e7a852ae3545c467a724a350975e5527a89e65c548b1c8db1918a8eaafdda7d3a0eacb87808074783149bca71bafe
-  languageName: node
-  linkType: hard
-
 "esbuild-openbsd-64@npm:0.15.6":
   version: 0.15.6
   resolution: "esbuild-openbsd-64@npm:0.15.6"
@@ -1852,7 +1835,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild@npm:^0.15.1, esbuild@npm:^0.15.6":
+"esbuild@npm:^0.15.1":
   version: 0.15.6
   resolution: "esbuild@npm:0.15.6"
   dependencies:
@@ -4476,7 +4459,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yargs@npm:^17.3.1, yargs@npm:^17.5.1":
+"yargs@npm:^17.3.1":
   version: 17.5.1
   resolution: "yargs@npm:17.5.1"
   dependencies:

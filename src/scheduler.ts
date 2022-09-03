@@ -12,22 +12,26 @@ import { z } from "zod";
 import { UnknownSequence } from "./sequence";
 import {
   SequenceActionType,
-  DakiyaParams,
+  DakiyaParams as SchedulerParams,
   InternalSequencesMap,
   ScheduledJobDocument,
   SequenceMetadataDocument,
   WorkflowParams,
 } from "./types";
 
-export class Scheduler<Sequences extends UnknownSequence[]> {
-  private sequences: InternalSequencesMap<Sequences>;
+export class Scheduler<
+  Sequences extends Readonly<UnknownSequence[]>,
+  SequenceMap extends InternalSequencesMap<Sequences> = InternalSequencesMap<Sequences>,
+  SequenceKeys extends keyof SequenceMap = keyof SequenceMap
+> {
+  private sequences: Readonly<SequenceMap>;
   private mongo: MongoClient;
   private db: Db;
   private sequenceCollection: Collection<SequenceMetadataDocument>;
   private jobsCollection: Collection<ScheduledJobDocument>;
   private mailTransporter: Transporter;
 
-  constructor(_sequences: Sequences, params: DakiyaParams) {
+  constructor(_sequences: Sequences, params: SchedulerParams) {
     if ("transporter" in params) {
       this.mailTransporter = params.transporter;
     } else {
@@ -35,9 +39,10 @@ export class Scheduler<Sequences extends UnknownSequence[]> {
     }
 
     this.sequences = _sequences.reduce((map, sequence) => {
-      map[sequence.name] = sequence;
+      const key = sequence.key as unknown as SequenceKeys;
+      map[key] = sequence as SequenceMap[SequenceKeys];
       return map;
-    }, {} as InternalSequencesMap<Sequences>);
+    }, {} as SequenceMap) as Readonly<SequenceMap>;
 
     this.mongo = new MongoClient(params.mongoUri, {});
     this.db = this.mongo.db("dakiya");
@@ -86,7 +91,8 @@ export class Scheduler<Sequences extends UnknownSequence[]> {
           continue;
         }
 
-        const sequenceObject = this.sequences[scheduledSequence.name];
+        const sequenceObject =
+          this.sequences[scheduledSequence.name as unknown as SequenceKeys];
         const template = sequenceObject.emails[key];
         const variables = scheduledSequence?.variables as z.infer<
           typeof sequenceObject["variableSchema"]
@@ -110,9 +116,9 @@ export class Scheduler<Sequences extends UnknownSequence[]> {
     }
   }
 
-  async exec<Name extends keyof typeof this.sequences>(
+  async exec<Name extends SequenceKeys>(
     name: Name,
-    variables: z.infer<typeof this.sequences[Name]["variableSchema"]>,
+    variables: z.infer<SequenceMap[Name]["variableSchema"]>,
     sendParams: WorkflowParams
   ) {
     const sequence = this.sequences[name];
@@ -150,7 +156,7 @@ export class Scheduler<Sequences extends UnknownSequence[]> {
 
     await this.sequenceCollection.insertOne({
       _id: new ObjectId(),
-      name: sequence.name,
+      name: sequence.key,
       variables,
       jobIds,
       sendParams: sendParams,
