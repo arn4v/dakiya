@@ -1,14 +1,12 @@
-import { Scheduler, createSequence, InternalSequencesMap } from "../src";
+import { Scheduler, Sequence } from "../src";
 import { z } from "zod";
-
-const html = String.raw;
 
 const onboardingSequenceVarsSchema = z.object({
   name: z.string(),
   verificationUrl: z.string(),
 });
 
-const onboardingSequence = createSequence(
+const onboardingSequence = new Sequence(
   "onboarding",
   onboardingSequenceVarsSchema
 )
