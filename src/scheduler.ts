@@ -12,11 +12,11 @@ import { z } from "zod";
 import { UnknownSequence } from "./sequence";
 import {
   SequenceActionType,
-  DakiyaParams as SchedulerParams,
+  SchedulerParams as SchedulerParams,
   InternalSequencesMap,
   ScheduledJobDocument,
   SequenceMetadataDocument,
-  WorkflowParams,
+  ExecParams,
 } from "./types";
 
 export class Scheduler<
@@ -119,7 +119,7 @@ export class Scheduler<
   async exec<Name extends SequenceKeys>(
     name: Name,
     variables: z.infer<SequenceMap[Name]["variableSchema"]>,
-    sendParams: WorkflowParams
+    sendParams: ExecParams
   ) {
     const sequence = this.sequences[name];
 

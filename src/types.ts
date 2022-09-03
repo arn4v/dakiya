@@ -4,7 +4,7 @@ import { TransportOptions, Transporter, SendMailOptions } from "nodemailer";
 import { z } from "zod";
 import { UnknownSequence } from "./sequence";
 
-export type DakiyaParams = (
+export type SchedulerParams = (
   | {
       transportOpts: TransportOptions;
     }
@@ -15,7 +15,7 @@ export type DakiyaParams = (
   mongoUri: string;
 };
 
-export type WorkflowParams = Pick<
+export type ExecParams = Pick<
   SendMailOptions,
   "cc" | "bcc" | "to" | "from" | "replyTo" | "subject"
 >;
@@ -25,7 +25,7 @@ export interface SequenceMetadataDocument {
   name: string;
   variables: Object;
   jobIds: ObjectId[];
-  sendParams: WorkflowParams;
+  sendParams: ExecParams;
 }
 
 export interface ScheduledJobDocument {
