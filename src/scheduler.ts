@@ -6,53 +6,20 @@ import {
   ObjectId,
 } from "mongodb";
 import ms from "ms";
-import cron from "node-cron";
-import {
-  createTransport,
-  SendMailOptions,
-  Transporter,
-  TransportOptions,
-} from "nodemailer";
+import * as cron from "node-cron";
+import { createTransport, Transporter } from "nodemailer";
 import { z } from "zod";
-import { ActionType, UnknownSequence } from "./sequence";
+import { UnknownSequence } from "./sequence";
+import {
+  SequenceActionType,
+  DakiyaParams,
+  InternalSequencesMap,
+  ScheduledJobDocument,
+  SequenceMetadataDocument,
+  WorkflowParams,
+} from "./types";
 
-export type DakiyaParams = (
-  | {
-      transportOpts: TransportOptions;
-    }
-  | {
-      transporter: Transporter;
-    }
-) & {
-  mongoUri: string;
-};
-
-type WorkflowParams = Pick<
-  SendMailOptions,
-  "cc" | "bcc" | "to" | "from" | "replyTo" | "subject"
->;
-
-interface SequenceMetadataDocument {
-  _id: ObjectId | string;
-  name: string;
-  variables: Object;
-  jobIds: ObjectId[];
-  sendParams: WorkflowParams;
-}
-
-interface ScheduledJobDocument {
-  _id: ObjectId | string;
-  workflowId: ObjectId | string;
-  key: string;
-  scheduledFor: number;
-  createdAt: number;
-}
-
-type InternalSequencesMap<Sequences extends UnknownSequence[]> = {
-  [key in Sequences[number]["name"]]: UnknownSequence;
-};
-
-export class Dakiya<Sequences extends UnknownSequence[]> {
+export class Scheduler<Sequences extends UnknownSequence[]> {
   private sequences: InternalSequencesMap<Sequences>;
   private mongo: MongoClient;
   private db: Db;
@@ -143,7 +110,7 @@ export class Dakiya<Sequences extends UnknownSequence[]> {
     }
   }
 
-  async scheduleSequence<Name extends keyof typeof this.sequences>(
+  async exec<Name extends keyof typeof this.sequences>(
     name: Name,
     variables: z.infer<typeof this.sequences[Name]["variableSchema"]>,
     sendParams: WorkflowParams
@@ -159,9 +126,9 @@ export class Dakiya<Sequences extends UnknownSequence[]> {
     const workflowId = new ObjectId().toHexString();
 
     for (const action of sequence.steps) {
-      if (action.type == ActionType.WAIT_FOR) {
+      if (action.type == SequenceActionType.WAIT_FOR) {
         waitFor = ms(action.value);
-      } else if (action.type == ActionType.SEND_MAIL) {
+      } else if (action.type == SequenceActionType.SEND_MAIL) {
         const jobId = new ObjectId();
 
         jobIds.push(jobId);

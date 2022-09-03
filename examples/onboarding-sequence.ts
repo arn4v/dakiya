@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { Dakiya, createSequence } from "../src";
+import { Scheduler, createSequence } from "../src";
 import { z } from "zod";
 
 const html = String.raw;
@@ -28,7 +28,7 @@ const welcomeSequence = createSequence(
   .waitFor("1d")
   .mail(/** */);
 
-const dakiya = new Dakiya([welcomeSequence], {
+const dakiya = new Scheduler([welcomeSequence], {
   mongoUri: process.env.MONGODB_URI!,
   transportOpts: {},
 });
@@ -50,7 +50,7 @@ const createUser = async ({ name, email }: CreateUserDto) => {
 
   //> Create verification link
 
-  await dakiya.scheduleSequence(
+  await dakiya.exec(
     "onboarding",
     {
       name,

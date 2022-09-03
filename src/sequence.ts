@@ -1,23 +1,7 @@
+import { StringValue } from "ms";
 import { z } from "zod";
+import { SequenceAction, SequenceActionType, EmailSubjectOrHtmlGenerator } from "./types";
 
-export enum ActionType {
-  WAIT_FOR = "waitFor",
-  SEND_MAIL = "sendMail",
-}
-
-type Action =
-  | {
-      type: ActionType.WAIT_FOR;
-      value: string;
-    }
-  | {
-      type: ActionType.SEND_MAIL;
-      value: string;
-    };
-
-type EmailSubjectOrHtmlGenerator<VariablesSchema extends z.ZodObject<{}>> = (
-  vars: z.infer<VariablesSchema>
-) => string;
 export class Sequence<
   Name extends string,
   VariablesSchema extends z.ZodObject<{}>
@@ -30,12 +14,12 @@ export class Sequence<
       getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
     }
   > = {};
-  public steps: Action[] = [];
+  public steps: SequenceAction[] = [];
 
   constructor(public name: Name, public variableSchema: VariablesSchema) {}
 
-  waitFor(value: string) {
-    const action: Action = { type: ActionType.WAIT_FOR, value };
+  waitFor(value: StringValue) {
+    const action: SequenceAction = { type: SequenceActionType.WAIT_FOR, value };
 
     this.steps.push(action);
 
@@ -51,8 +35,8 @@ export class Sequence<
     getSubject: EmailSubjectOrHtmlGenerator<VariablesSchema>;
     getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
   }) {
-    const action: Action = {
-      type: ActionType.SEND_MAIL,
+    const action: SequenceAction = {
+      type: SequenceActionType.SEND_MAIL,
       value: key,
     };
 
@@ -75,4 +59,4 @@ export const createSequence = <
   variables: Variables
 ) => new Sequence(name, variables);
 
-export type UnknownSequence = Sequence<any, any>;
+export type UnknownSequence = Sequence<string, z.ZodObject<any>>;

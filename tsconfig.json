@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["ESNext", "ESNext.AsyncIterable"],
+    "module": "CommonJS",
+    "forceConsistentCasingInFileNames": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "moduleResolution": "node",
+    "types": ["node"],
+    "strict": true,
+    "esModuleInterop": true,
+    "removeComments": true,
+    "isolatedModules": true
+  },
+  "exclude": ["dist", "node_modules", "examples"],
+  "include": ["./src/**/*.ts"]
+}
