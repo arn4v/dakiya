@@ -1,19 +1,26 @@
-import { ObjectId } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { StringValue } from "ms";
-import { TransportOptions, Transporter, SendMailOptions } from "nodemailer";
+import { Transporter, SendMailOptions, createTransport } from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { z } from "zod";
 import { UnknownSequence } from "./sequence";
-
-export type SchedulerParams = (
+type MongoClientOrUrl =
   | {
-      transportOpts: TransportOptions;
+      mongo: MongoClient;
+    }
+  | {
+      mongoUrl: string;
+    };
+
+type TransporterOrOptions =
+  | {
+      transporterOpts: SMTPTransport.Options;
     }
   | {
       transporter: Transporter;
-    }
-) & {
-  mongoUri: string;
-};
+    };
+
+export type SchedulerParams = TransporterOrOptions & MongoClientOrUrl;
 
 export type ExecParams = Pick<
   SendMailOptions,

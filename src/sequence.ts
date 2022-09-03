@@ -14,10 +14,11 @@ export class Sequence<
     string,
     {
       key: string;
-      getSubject: EmailSubjectOrHtmlGenerator<VariablesSchema>;
-      getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
+      subject: string | EmailSubjectOrHtmlGenerator<VariablesSchema>;
+      html: string | EmailSubjectOrHtmlGenerator<VariablesSchema>;
     }
   > = {};
+  private emailCount: number = 0;
   public steps: SequenceAction[] = [];
 
   constructor(public key: Key, public variableSchema: VariablesSchema) {}
@@ -30,24 +31,24 @@ export class Sequence<
     return this;
   }
 
-  mail({
+  sendMail({
     key,
-    getSubject,
-    getHtml,
+    subject: getSubject,
+    html: getHtml,
   }: {
-    key: string;
-    getSubject: EmailSubjectOrHtmlGenerator<VariablesSchema>;
-    getHtml: EmailSubjectOrHtmlGenerator<VariablesSchema>;
+    key?: string;
+    subject: string | EmailSubjectOrHtmlGenerator<VariablesSchema>;
+    html: string | EmailSubjectOrHtmlGenerator<VariablesSchema>;
   }) {
     const action: SequenceAction = {
       type: SequenceActionType.SEND_MAIL,
-      value: key,
+      value: key ?? String(this.emailCount + 1),
     };
 
-    this.emails[key] = {
-      key: key,
-      getHtml,
-      getSubject,
+    this.emails[action.value] = {
+      key: action.value,
+      html: getHtml,
+      subject: getSubject,
     };
     this.steps.push(action);
 

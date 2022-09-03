@@ -1,6 +1,6 @@
 # Dakiya
 
-Code-first email workflow & scheduling tool for Node.js.
+Simple email sequence scheduler for Node.js.
 
 ## Usage
 

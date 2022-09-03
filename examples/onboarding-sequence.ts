@@ -11,13 +11,13 @@ const onboardingSequence = new Sequence(
   onboardingSequenceVarsSchema
 )
   .waitFor("5m")
-  .mail({
+  .sendMail({
     key: "Welcome",
-    getSubject({ name }) {
+    subject({ name }) {
       // Return subject string
       return `Welcome to App, ${name}`;
     },
-    getHtml({ name, verificationUrl }) {
+    html({ name, verificationUrl }) {
       // Return Email HTML
       return "";
     },
@@ -47,7 +47,7 @@ const createUser = async ({ name, email }: CreateUserDto) => {
 
   //> Create verification link
 
-  await scheduler.exec(
+  await scheduler.start(
     "onboarding",
     {
       name,
