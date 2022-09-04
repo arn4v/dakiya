@@ -42,7 +42,7 @@ export class Sequence<
   }) {
     const action: SequenceAction = {
       type: SequenceActionType.SEND_MAIL,
-      value: key ?? String(this.emailCount + 1),
+      value: key ?? String(++this.emailCount),
     };
 
     this.emails[action.value] = {

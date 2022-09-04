@@ -6,7 +6,7 @@ import {
   createTestAccount,
   createTransport,
   TestAccount,
-  Transporter
+  Transporter,
 } from "nodemailer";
 import { z, ZodError } from "zod";
 import { Scheduler } from "./scheduler";
@@ -17,41 +17,54 @@ const testSequence = new Sequence(
   z.object({
     name: z.string(),
   })
-).sendMail({
-  html: "Test",
-  subject: "Test",
-});
-
-let mongod: MongoMemoryServer;
-let mongo: MongoClient;
-let transporter: Transporter;
-let testAccount: TestAccount;
-
-beforeAll(async () => {
-  mongod = await MongoMemoryServer.create({
-    binary: {
-      checkMD5: false,
-      arch: "x86_64",
-    },
-    instance: {},
+)
+  .sendMail({
+    html: "1",
+    subject: "",
+  })
+  .sendMail({
+    html: "2",
+    subject: "",
   });
-
-  mongo = await MongoClient.connect(mongod.getUri());
-
-  testAccount = await createTestAccount();
-
-  transporter = createTransport({
-    ...testAccount.smtp,
-    auth: {
-      user: testAccount.user,
-      pass: testAccount.pass,
-    },
-  });
-});
-
-afterAll(() => mongod.stop());
 
 describe("Scheduler", () => {
+  let mongod: MongoMemoryServer;
+  let mongo: MongoClient;
+  let transporter: Transporter;
+  let testAccount: TestAccount;
+
+  beforeAll(async () => {
+    mongod = await MongoMemoryServer.create({
+      binary: {
+        checkMD5: false,
+        arch: "x86_64",
+      },
+      instance: {},
+    });
+
+    mongo = await MongoClient.connect(mongod.getUri());
+
+    testAccount = await createTestAccount();
+
+    transporter = createTransport({
+      ...testAccount.smtp,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    });
+  });
+
+  afterAll(() => mongod.stop());
+
+  beforeEach(async () => {
+    const db = mongo.db("dakiya");
+
+    for (const collection of await db.listCollections().toArray()) {
+      await db.collection(collection.name).drop();
+    }
+  });
+
   it("Should connect to MongoDB on initialize", async () => {
     const cronSpy = jest.spyOn(cron, "schedule");
     const mongoSpy = jest.spyOn(mongo, "connect");
@@ -101,11 +114,34 @@ describe("Scheduler", () => {
       }
     );
 
-    const collectionSpy = jest.spyOn(scheduler.jobsCollection!, "find");
+    expect(await scheduler.getScheduledJobs()).toHaveLength(2);
+    expect(await scheduler.sequenceCollection?.find().toArray()).toHaveLength(1);
+  });
 
-    const scheduled = await scheduler.getScheduledJobs();
+  it("Should cancel all jobs in a sequence", async () => {
+    const scheduler = new Scheduler([testSequence], {
+      mongo,
+      transporter,
+    });
 
-    expect(collectionSpy).toBeCalled();
-    expect(scheduled).toHaveLength(1);
+    await scheduler.initialize();
+
+    const scheduledSequenceId = await scheduler.schedule(
+      "test",
+      {
+        name: "Test",
+      },
+      {
+        to: "test@test.com",
+        from: "me@me.com",
+        subject: "Test ",
+      }
+    );
+
+    expect(await scheduler.getScheduledJobs()).toHaveLength(2);
+
+    await scheduler.cancel(scheduledSequenceId);
+
+    expect(await scheduler.getScheduledJobs()).toHaveLength(0);
   });
 });

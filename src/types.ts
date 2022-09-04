@@ -37,7 +37,7 @@ export interface SequenceMetadataDocument {
 
 export interface ScheduledJobDocument {
   _id: ObjectId | string;
-  workflowId: ObjectId | string;
+  sequenceId: ObjectId | string;
   key: string;
   scheduledFor: number;
   createdAt: number;

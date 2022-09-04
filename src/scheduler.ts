@@ -75,9 +75,15 @@ export class Scheduler<
   }
 
   async getScheduledSequence(_id: ObjectId | string) {
-    return await this.sequenceCollection?.findOne({
+    const sequence = await this.sequenceCollection?.findOne({
       _id,
     });
+
+    if (!sequence) {
+      throw "Sequence not found";
+    }
+
+    return sequence;
   }
 
   async getScheduledJobs() {
@@ -92,7 +98,7 @@ export class Scheduler<
 
   async sendPendingEmails() {
     const jobs = (await this.getScheduledJobs()) || [];
-    for (const { _id, key, workflowId } of jobs) {
+    for (const { _id, key, sequenceId: workflowId } of jobs) {
       try {
         const scheduledSequence = await this.getScheduledSequence(workflowId);
 
@@ -134,6 +140,20 @@ export class Scheduler<
     }
   }
 
+  async cancel(_id: ObjectId | string) {
+    const sequence = await this.getScheduledSequence(_id);
+
+    await this.jobsCollection?.deleteMany({
+      _id: {
+        $in: sequence?.jobIds,
+      },
+    });
+
+    await this.sequenceCollection?.deleteOne({
+      _id,
+    });
+  }
+
   async schedule<Name extends SequenceKeys>(
     name: Name,
     variables: z.infer<SequenceMap[Name]["variableSchema"]>,
@@ -155,15 +175,13 @@ export class Scheduler<
         );
         throw e;
       }
-
-      return;
     }
 
     const ops: AnyBulkWriteOperation<ScheduledJobDocument>[] = [];
     const jobIds: ObjectId[] = [];
     let waitFor: number = 0;
 
-    const workflowId = new ObjectId().toHexString();
+    const scheduledSequenceId = new ObjectId().toHexString();
 
     for (const action of sequence.steps) {
       if (action.type == SequenceActionType.WAIT_FOR) {
@@ -178,7 +196,7 @@ export class Scheduler<
             document: {
               _id: jobId,
               key: sequence.emails[action.value].key,
-              workflowId,
+              sequenceId: scheduledSequenceId,
               scheduledFor: new Date().getTime() + waitFor,
               createdAt: new Date().getTime(),
             },
@@ -189,12 +207,14 @@ export class Scheduler<
     }
 
     await this.sequenceCollection?.insertOne({
-      _id: new ObjectId(),
+      _id: scheduledSequenceId,
       name: sequence.key,
       variables,
       jobIds,
       sendParams: sendParams,
     });
     await this.jobsCollection?.bulkWrite(ops);
+
+    return scheduledSequenceId;
   }
 }
