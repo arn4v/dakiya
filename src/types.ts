@@ -4,6 +4,7 @@ import { Transporter, SendMailOptions, createTransport } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { z } from "zod";
 import { UnknownSequence } from "./sequence";
+
 type MongoClientOrUrl =
   | {
       mongo: MongoClient;
@@ -20,7 +21,15 @@ type TransporterOrOptions =
       transporter: Transporter;
     };
 
-export type SchedulerParams = TransporterOrOptions & MongoClientOrUrl;
+enum WaitMode {
+  Stacked = "stacked",
+  Indepedent = "independent",
+}
+
+export type SchedulerParams = {
+  waitMode?: "stack" | "individual";
+} & TransporterOrOptions &
+  MongoClientOrUrl;
 
 export type ExecParams = Pick<
   SendMailOptions,

@@ -1,6 +1,7 @@
 import { describe, it } from "@jest/globals";
 import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
+import ms from "ms";
 import cron from "node-cron";
 import {
   createTestAccount,
@@ -115,7 +116,9 @@ describe("Scheduler", () => {
     );
 
     expect(await scheduler.getScheduledJobs()).toHaveLength(2);
-    expect(await scheduler.sequenceCollection?.find().toArray()).toHaveLength(1);
+    expect(await scheduler.sequenceCollection?.find().toArray()).toHaveLength(
+      1
+    );
   });
 
   it("Should cancel all jobs in a sequence", async () => {
@@ -143,5 +146,72 @@ describe("Scheduler", () => {
     await scheduler.cancel(scheduledSequenceId);
 
     expect(await scheduler.getScheduledJobs()).toHaveLength(0);
+  });
+
+  it("Should stack waitFor delays", async () => {
+    const sequence = new Sequence(
+      "test",
+      z.object({
+        name: z.string(),
+      })
+    )
+      .waitFor("1m")
+      .sendMail({
+        html: "1",
+        subject: "",
+      })
+      .waitFor("2m")
+      .sendMail({
+        html: "2",
+        subject: "",
+      });
+
+    const scheduler = new Scheduler([sequence], {
+      mongo,
+      transporter,
+      waitMode: "stack",
+    });
+
+    const { ops } = scheduler.getScheduledJobsOpsObject(sequence);
+
+    // @ts-ignore
+    const jobs = ops.map((item) => item.insertOne.document);
+
+    expect(ops).toHaveLength(2);
+
+    expect(jobs?.[1].scheduledFor! - jobs?.[0].scheduledFor!).toBe(ms("2m"));
+  });
+
+  it("Should not stack (individual mode) waitFor delays", async () => {
+    const sequence = new Sequence(
+      "test",
+      z.object({
+        name: z.string(),
+      })
+    )
+      .waitFor("1m")
+      .sendMail({
+        html: "1",
+        subject: "",
+      })
+      .waitFor("2m")
+      .sendMail({
+        html: "2",
+        subject: "",
+      });
+
+    const scheduler = new Scheduler([sequence], {
+      mongo,
+      transporter,
+    });
+
+    const { ops } = scheduler.getScheduledJobsOpsObject(sequence);
+
+    // @ts-ignore
+    const jobs = ops.map((item) => item.insertOne.document);
+
+    expect(ops).toHaveLength(2);
+
+    expect(jobs?.[1].scheduledFor! - jobs?.[0].scheduledFor!).toBe(ms("1m"));
   });
 });

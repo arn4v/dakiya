@@ -17,6 +17,7 @@ import {
   ScheduledJobDocument,
   SequenceMetadataDocument,
   ExecParams,
+  SequenceAction,
 } from "./types";
 
 export class Scheduler<
@@ -48,6 +49,8 @@ export class Scheduler<
       "mongo" in params ? params.mongo : new MongoClient(params.mongoUrl);
 
     this.sendPendingEmails = this.sendPendingEmails.bind(this);
+
+    if (!params.waitMode) params.waitMode = "stack";
   }
 
   async initialize() {
@@ -177,34 +180,8 @@ export class Scheduler<
       }
     }
 
-    const ops: AnyBulkWriteOperation<ScheduledJobDocument>[] = [];
-    const jobIds: ObjectId[] = [];
-    let waitFor: number = 0;
-
-    const scheduledSequenceId = new ObjectId().toHexString();
-
-    for (const action of sequence.steps) {
-      if (action.type == SequenceActionType.WAIT_FOR) {
-        waitFor = ms(action.value);
-      } else if (action.type == SequenceActionType.SEND_MAIL) {
-        const jobId = new ObjectId();
-
-        jobIds.push(jobId);
-
-        ops.push({
-          insertOne: {
-            document: {
-              _id: jobId,
-              key: sequence.emails[action.value].key,
-              sequenceId: scheduledSequenceId,
-              scheduledFor: new Date().getTime() + waitFor,
-              createdAt: new Date().getTime(),
-            },
-          },
-        });
-        waitFor = 0;
-      }
-    }
+    const { jobIds, ops, scheduledSequenceId } =
+      this.getScheduledJobsOpsObject(sequence);
 
     await this.sequenceCollection?.insertOne({
       _id: scheduledSequenceId,
@@ -216,5 +193,56 @@ export class Scheduler<
     await this.jobsCollection?.bulkWrite(ops);
 
     return scheduledSequenceId;
+  }
+
+  getScheduledJobsOpsObject<Sequence extends UnknownSequence>(
+    sequence: Sequence
+  ) {
+    let waitFor: number = 0;
+
+    const ops: AnyBulkWriteOperation<ScheduledJobDocument>[] = [];
+
+    const jobIds: ObjectId[] = [];
+
+    const scheduledSequenceId = new ObjectId().toHexString();
+
+    const startTime = new Date().getTime();
+
+    for (const action of sequence.steps) {
+      if (action.type == SequenceActionType.WAIT_FOR) {
+        if (this.params.waitMode == "individual") {
+          waitFor = ms(action.value);
+        } else {
+          waitFor = waitFor + ms(action.value);
+        }
+      } else if (action.type == SequenceActionType.SEND_MAIL) {
+        const jobId = new ObjectId();
+
+        jobIds.push(jobId);
+
+        ops.push({
+          insertOne: {
+            document: {
+              _id: jobId,
+              key: sequence.emails[action.value].key,
+              sequenceId: scheduledSequenceId,
+              scheduledFor: startTime + waitFor,
+              createdAt: new Date().getTime(),
+            },
+          },
+        });
+
+        if (this.params.waitMode == "individual") {
+          waitFor = 0;
+        }
+      }
+    }
+
+    return {
+      ops,
+      jobIds,
+      scheduledSequenceId,
+      startTime,
+    };
   }
 }

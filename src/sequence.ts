@@ -56,12 +56,4 @@ export class Sequence<
   }
 }
 
-export const createSequence = <
-  Variables extends z.ZodObject<{}>,
-  Name extends string
->(
-  name: Name,
-  variables: Variables
-) => new Sequence(name, variables);
-
 export type UnknownSequence = Sequence<any, any>;
