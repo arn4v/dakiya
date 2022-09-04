@@ -1,4 +1,6 @@
-# Dakiya ![](https://github.com/arn4v/dakiya/actions/workflows/ci/badge.svg)
+# Dakiya
+
+![](https://github.com/arn4v/dakiya/actions/workflows/ci/badge.svg)
 
 _Simple_ email automation for Node.js _made easy_.
 
