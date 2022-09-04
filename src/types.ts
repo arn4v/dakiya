@@ -21,13 +21,9 @@ type TransporterOrOptions =
       transporter: Transporter;
     };
 
-enum WaitMode {
-  Stacked = "stacked",
-  Indepedent = "independent",
-}
-
 export type SchedulerParams = {
   waitMode?: "stack" | "individual";
+  cronStringOverride?: string;
 } & TransporterOrOptions &
   MongoClientOrUrl;
 

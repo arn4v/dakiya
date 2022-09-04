@@ -1,8 +1,13 @@
-# Dakiya
+# Dakiya ![](https://github.com/arn4v/dakiya/actions/workflows/ci/badge.svg)
 
-Simple email sequence scheduler for Node.js.
+_Simple_ email automation for Node.js _made easy_.
 
-## Usage
+## Features
+
+- **Zero config management**: Use simple, chainable code to create email sequences.
+- **Email platform agnostic**: Works with any email platform, you just need SMTP credentials.
+
+## Example Ussage
 
 ```typescript
 import { Sequence, Scheduler } from "dakiya";
@@ -22,16 +27,15 @@ export const onboarding = new Sequence(
   welcomeVariablesSchema
 )
   .waitFor("5m")
-  .mail({
+  .sendMail({
     key: "welcome",
-    getSubject() {
-      return "Welcome to {Product Name}!";
-    },
-    getHtml({ name }) {
+    subject: "Welcome to {Product Name}!",
+    html({ name }) {
       return `Hi ${name}, Welcome to {Product Name}`; // Email HTML
     },
   })
-  .mail({
+  .waitFor("5m")
+  .sendMail({
     key: "verify_email",
     getSubject() {
       return "Verify Your Email";
@@ -47,7 +51,7 @@ export const scheduler = new Scheduler([onboarding], {
 });
 
 await scheduler.initialize();
-await scheduler.exec(
+await scheduler.schedule(
   EmailSequence.Onboarding,
   { name: "", verificationUrl: "" },
   // Nodemailer SendMailOptions

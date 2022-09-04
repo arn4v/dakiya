@@ -1,4 +1,4 @@
-import { describe, it } from "@jest/globals";
+import { describe, it, test } from "@jest/globals";
 import { MongoClient } from "mongodb";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import ms from "ms";
@@ -12,6 +12,7 @@ import {
 import { z, ZodError } from "zod";
 import { Scheduler } from "./scheduler";
 import { Sequence } from "./sequence";
+import { sleep } from "./utils";
 
 const testSequence = new Sequence(
   "test",
@@ -66,7 +67,7 @@ describe("Scheduler", () => {
     }
   });
 
-  it("Should connect to MongoDB on initialize", async () => {
+  it("Should connect to MongoDB & schedule Cron on initialize", async () => {
     const cronSpy = jest.spyOn(cron, "schedule");
     const mongoSpy = jest.spyOn(mongo, "connect");
 
@@ -80,6 +81,30 @@ describe("Scheduler", () => {
     expect(mongoSpy).toBeCalled();
     expect(cronSpy).toBeCalled();
   });
+
+  it(
+    "Should send emails on cron.schedule call",
+    async () => {
+      const scheduler = new Scheduler([testSequence], {
+        mongo,
+        transporter,
+      });
+
+      const sendPendingSpy = jest.spyOn(scheduler, "sendPendingEmails");
+      const cronSpy = jest.spyOn(cron, "schedule").mockImplementationOnce(
+        // @ts-ignore
+        async (_, __, ___) => await scheduler.sendPendingEmails()
+      );
+
+      await scheduler.initialize();
+      await scheduler.schedule("test", { name: "" }, { from: "", to: "" });
+
+      expect(cronSpy).toBeCalled();
+      // await sleep(60 * 1000);
+      expect(sendPendingSpy).toBeCalled();
+    },
+    70 * 1000
+  );
 
   it("Should throw an exception if variables don't match zod spec", async () => {
     const scheduler = new Scheduler([testSequence], {
@@ -182,7 +207,7 @@ describe("Scheduler", () => {
     expect(jobs?.[1].scheduledFor! - jobs?.[0].scheduledFor!).toBe(ms("2m"));
   });
 
-  it("Should not stack (individual mode) waitFor delays", async () => {
+  it("Should not stack waitFor delays (individual mode)", async () => {
     const sequence = new Sequence(
       "test",
       z.object({
@@ -203,6 +228,7 @@ describe("Scheduler", () => {
     const scheduler = new Scheduler([sequence], {
       mongo,
       transporter,
+      waitMode: "individual",
     });
 
     const { ops } = scheduler.getScheduledJobsOpsObject(sequence);
@@ -213,5 +239,69 @@ describe("Scheduler", () => {
     expect(ops).toHaveLength(2);
 
     expect(jobs?.[1].scheduledFor! - jobs?.[0].scheduledFor!).toBe(ms("1m"));
+  });
+
+  test("getScheduledSequence should throw error if invalid _id is passed", async () => {
+    const sequence = new Sequence(
+      "test",
+      z.object({
+        name: z.string(),
+      })
+    )
+      .waitFor("1m")
+      .sendMail({
+        html: "1",
+        subject: "",
+      })
+      .waitFor("2m")
+      .sendMail({
+        html: "2",
+        subject: "",
+      });
+
+    const scheduler = new Scheduler([sequence], {
+      mongo,
+      transporter,
+      waitMode: "individual",
+    });
+
+    await scheduler.initialize();
+
+    expect(() => scheduler.getScheduledSequence("invalidId")).rejects.toThrow();
+  });
+
+  it("Should send all pending emails", async () => {
+    const sequence = new Sequence(
+      "test",
+      z.object({
+        name: z.string(),
+      })
+    )
+      .sendMail({
+        html: "1",
+        subject: "",
+      })
+      .sendMail({
+        html: "2",
+        subject: "",
+      });
+
+    const sendMailSpy = jest
+      .spyOn(transporter, "sendMail")
+      .mockImplementation(jest.fn());
+
+    const scheduler = new Scheduler([sequence], {
+      mongo,
+      transporter,
+    });
+
+    await scheduler.initialize();
+    await scheduler.schedule("test", { name: "" }, { from: "", to: "" });
+
+    expect(await scheduler.getScheduledJobs()).toHaveLength(2);
+
+    await scheduler.sendPendingEmails();
+
+    expect(sendMailSpy).toBeCalledTimes(2);
   });
 });

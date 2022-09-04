@@ -61,9 +61,9 @@ export class Scheduler<
       this.sequenceCollection = this.db.collection("sequences");
       this.jobsCollection = this.db.collection("jobs");
 
-      console.log("Dakiya: Connected to MongoDB");
+      console.log("Dakiya: Scheduler.initialize: Connected to MongoDB");
     } catch (err) {
-      console.error("Dakiya: Unable to connect to MongoDB");
+      console.error("Dakiya: Scheduler.initialize: Unable to connect to MongoDB");
       throw err;
     }
 
@@ -72,9 +72,10 @@ export class Scheduler<
   }
 
   private startCron() {
-    cron.schedule("* * * * *", (now) => {
-      void this.sendPendingEmails();
-    });
+    cron.schedule(
+      this.params.cronStringOverride ?? "* * * * *",
+      this.sendPendingEmails
+    );
   }
 
   async getScheduledSequence(_id: ObjectId | string) {
@@ -83,7 +84,7 @@ export class Scheduler<
     });
 
     if (!sequence) {
-      throw "Sequence not found";
+      throw new Error("Sequence not found");
     }
 
     return sequence;
@@ -101,16 +102,10 @@ export class Scheduler<
 
   async sendPendingEmails() {
     const jobs = (await this.getScheduledJobs()) || [];
-    for (const { _id, key, sequenceId: workflowId } of jobs) {
-      try {
-        const scheduledSequence = await this.getScheduledSequence(workflowId);
 
-        if (!scheduledSequence) {
-          console.error(
-            `sendPendingEmails: Invalid scheduled sequence id ${workflowId}. Not sending email ${key} ${_id}.`
-          );
-          continue;
-        }
+    for (const { _id, key, sequenceId } of jobs) {
+      try {
+        const scheduledSequence = await this.getScheduledSequence(sequenceId);
 
         const sequenceObject =
           this.sequences[scheduledSequence.name as unknown as SequenceKeys];
@@ -135,7 +130,7 @@ export class Scheduler<
       } catch (e) {
         if (e instanceof Error) {
           console.error(
-            `sendPendingEmails: Failed to send email ${key} of workflow id ${workflowId}. Reason: ${e.message}`
+            `sendPendingEmails: Failed to send email ${key} of workflow id ${sequenceId}. Reason: ${e.message}`
           );
         }
         continue;
@@ -171,7 +166,7 @@ export class Scheduler<
     } catch (e) {
       if (e instanceof ZodError) {
         console.error(
-          `Variables provided for sequence ${String(
+          `Dakiya: Scheduler.schedule: Variables provided for sequence ${String(
             name
           )} do not match schema.`,
           e.issues
