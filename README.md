@@ -7,7 +7,15 @@ _Simple_ email automation for Node.js _made easy_.
 ## Features
 
 - **Zero config management**: Use simple, chainable code to create email sequences.
-- **Email platform agnostic**: Works with any email platform, you just need SMTP credentials.
+- **Email platform agnostic**: Only SMTP credentials required.
+
+## Roadmap
+
+
+1. [ ] Compliance Features (Unsubscribing)
+2. [ ] Custom conditionals support
+3. [ ] Tracking Opens
+4. [ ] Self-hostable web interface
 
 ## Example Ussage
 
