@@ -38,26 +38,30 @@ export const onboarding = new Sequence(
 )
   .waitFor("5m")
   .sendMail({
-    key: "welcome",
     subject: "Welcome to {Product Name}!",
     html({ name }) {
       return `Hi ${name}, Welcome to {Product Name}`; // Email HTML
     },
   })
-  .waitFor("5m")
   .sendMail({
-    key: "verify_email",
-    getSubject() {
-      return "Verify Your Email";
-    },
-    getHtml({ verificationUrl }) {
+    subject: "Verify Your Email",
+    html({ verificationUrl }) {
       return "";
     },
+  })
+  .waitFor("1d")
+  .sendMail({
+    subject: "Access {Product Name} On The Go!",
+    html({ name }) {
+      const downloadUrl = "";
+      return `Hi ${name}, Access {Product Name} on the go using our mobile app. Download for iOS: ${downloadUrl}`
+    }
   });
 
 export const scheduler = new Scheduler([onboarding], {
   mongoUri: "", // mongodb connections string
   transportOpts: {}, // nodemailer transport options
+  waitMode: "stack"
 });
 
 await scheduler.initialize();
