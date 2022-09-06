@@ -1,6 +1,6 @@
 {
   "name": "dakiya",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": "https://github.com/arn4v/dakiya",
@@ -12,7 +12,8 @@
     "build": "rimraf dist && tsup src/index.ts --dts",
     "prepare": "yarn build",
     "test": "jest",
-    "test:coverage": "yarn test --coverage"
+    "test:coverage": "yarn test --coverage",
+    "prepublish": "yarn prepare"
   },
   "dependencies": {
     "date-fns": "^2.29.2",
