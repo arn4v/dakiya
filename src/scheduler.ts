@@ -11,14 +11,14 @@ import { createTransport, Transporter } from "nodemailer";
 import { z, ZodError } from "zod";
 import { UnknownSequence } from "./sequence";
 import {
-  SequenceActionType,
-  SchedulerParams as SchedulerParams,
+  ExecParams,
   InternalSequencesMap,
   ScheduledJobDocument,
+  SchedulerParams,
+  SequenceActionType,
   SequenceMetadataDocument,
-  ExecParams,
-  SequenceAction,
 } from "./types";
+import { removeFromArray } from "./utils";
 
 export class Scheduler<
   Sequences extends Readonly<UnknownSequence[]>,
@@ -63,7 +63,9 @@ export class Scheduler<
 
       console.log("Dakiya: Scheduler.initialize: Connected to MongoDB");
     } catch (err) {
-      console.error("Dakiya: Scheduler.initialize: Unable to connect to MongoDB");
+      console.error(
+        "Dakiya: Scheduler.initialize: Unable to connect to MongoDB"
+      );
       throw err;
     }
 
@@ -78,7 +80,7 @@ export class Scheduler<
     );
   }
 
-  async getScheduledSequence(_id: ObjectId | string) {
+  async getScheduledSequence(_id: ObjectId) {
     const sequence = await this.sequenceCollection?.findOne({
       _id,
     });
@@ -124,9 +126,26 @@ export class Scheduler<
               ? template.html(variables)
               : template.html,
         });
-        await this.jobsCollection?.deleteOne({
-          _id,
-        });
+
+        await this.jobsCollection?.updateOne(
+          {
+            _id,
+          },
+          {
+            sentAt: new Date().getTime(),
+          }
+        );
+
+        await this.sequenceCollection?.updateOne(
+          {
+            _id: sequenceId,
+          },
+          {
+            $push: {
+              completedJobs: [_id],
+            },
+          }
+        );
       } catch (e) {
         if (e instanceof Error) {
           console.error(
@@ -138,14 +157,21 @@ export class Scheduler<
     }
   }
 
-  async cancel(_id: ObjectId | string) {
+  async cancel(_id: ObjectId) {
     const sequence = await this.getScheduledSequence(_id);
 
-    await this.jobsCollection?.deleteMany({
-      _id: {
-        $in: sequence?.jobIds,
+    await this.jobsCollection?.updateMany(
+      {
+        _id: {
+          $in: removeFromArray(sequence?.jobs, sequence?.completedJobs),
+        },
       },
-    });
+      {
+        $set: {
+          canceled: true,
+        },
+      }
+    );
 
     await this.sequenceCollection?.deleteOne({
       _id,
@@ -182,7 +208,8 @@ export class Scheduler<
       _id: scheduledSequenceId,
       name: sequence.key,
       variables,
-      jobIds,
+      jobs: jobIds,
+      completedJobs: [],
       sendParams: sendParams,
     });
     await this.jobsCollection?.bulkWrite(ops);
@@ -199,7 +226,7 @@ export class Scheduler<
 
     const jobIds: ObjectId[] = [];
 
-    const scheduledSequenceId = new ObjectId().toHexString();
+    const scheduledSequenceId = new ObjectId();
 
     const startTime = new Date().getTime();
 
@@ -222,6 +249,8 @@ export class Scheduler<
               key: sequence.emails[action.value].key,
               sequenceId: scheduledSequenceId,
               scheduledFor: startTime + waitFor,
+              canceled: false,
+              sentAt: null,
               createdAt: new Date().getTime(),
             },
           },

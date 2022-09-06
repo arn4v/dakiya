@@ -1032,6 +1032,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/underscore@npm:^1.11.4":
+  version: 1.11.4
+  resolution: "@types/underscore@npm:1.11.4"
+  checksum: db9f8486bc851b732259e51f42d62aad1ae2158be5724612dc125ece5f5d61c51447f9dea28284c2a0f79cb95e788d01cb5ce97709880019213e69fab0dd1696
+  languageName: node
+  linkType: hard
+
 "@types/webidl-conversions@npm:*":
   version: 6.1.1
   resolution: "@types/webidl-conversions@npm:6.1.1"
@@ -1717,8 +1724,9 @@ __metadata:
     "@types/node": ^18.7.14
     "@types/node-cron": ^3.0.2
     "@types/nodemailer": ^6.4.5
+    "@types/underscore": ^1.11.4
     date-fns: ^2.29.2
-    jest: 28
+    jest: ^28
     jest-smtp: ^0.0.2
     mongodb: ^4.9.0
     mongodb-memory-server: ^8.9.1
@@ -1730,6 +1738,7 @@ __metadata:
     ts-node: ^10.9.1
     tsup: ^6.2.3
     typescript: ^4.8.2
+    underscore: ^1.13.4
     zod: ^3.18.0
   languageName: unknown
   linkType: soft
@@ -3330,7 +3339,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jest@npm:28":
+"jest@npm:^28":
   version: 28.1.3
   resolution: "jest@npm:28.1.3"
   dependencies:
@@ -5053,6 +5062,13 @@ __metadata:
   version: 1.0.6
   resolution: "uc.micro@npm:1.0.6"
   checksum: 6898bb556319a38e9cf175e3628689347bd26fec15fc6b29fa38e0045af63075ff3fea4cf1fdba9db46c9f0cbf07f2348cd8844889dd31ebd288c29fe0d27e7a
+  languageName: node
+  linkType: hard
+
+"underscore@npm:^1.13.4":
+  version: 1.13.4
+  resolution: "underscore@npm:1.13.4"
+  checksum: 6b04f66cd454e8793a552dc49c71e24e5208a29b9d9c0af988a96948af79103399c36fb15db43f3629bfed152f8b1fe94f44e1249e9d196069c0fc7edfadb636
   languageName: node
   linkType: hard
 

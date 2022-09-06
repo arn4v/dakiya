@@ -33,18 +33,21 @@ export type ExecParams = Pick<
 >;
 
 export interface SequenceMetadataDocument {
-  _id: ObjectId | string;
+  _id: ObjectId;
   name: string;
   variables: Object;
-  jobIds: ObjectId[];
+  jobs: ObjectId[];
+  completedJobs: ObjectId[];
   sendParams: ExecParams;
 }
 
 export interface ScheduledJobDocument {
-  _id: ObjectId | string;
-  sequenceId: ObjectId | string;
+  _id: ObjectId;
+  sequenceId: ObjectId;
   key: string;
   scheduledFor: number;
+  canceled: boolean;
+  sentAt: number | null;
   createdAt: number;
 }
 
