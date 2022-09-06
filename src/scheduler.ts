@@ -95,6 +95,8 @@ export class Scheduler<
   async getScheduledJobs() {
     return await this.jobsCollection
       ?.find({
+        sentAt: null,
+        canceled: false,
         scheduledFor: {
           $lte: new Date().getTime(),
         },
@@ -142,7 +144,7 @@ export class Scheduler<
           },
           {
             $push: {
-              completedJobs: [_id],
+              completedJobs: _id,
             },
           }
         );

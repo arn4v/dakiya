@@ -267,6 +267,7 @@ describe("Scheduler", () => {
 
     await scheduler.initialize();
 
+    // @ts-ignore
     expect(() => scheduler.getScheduledSequence("invalidId")).rejects.toThrow();
   });
 
